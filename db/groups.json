@@ -1,0 +1,3 @@
+[{name: "users", participants: ["596cb706541aeacc2d937e12","596cb706541aeacc2d937e13", "596cb706541aeacc2d937e14", "596cb706541aeacc2d937e15", "596cb706541aeacc2d937e16" ]},
+{name: "admins", participants: ["596cb706541aeacc2d937e17", "596cb706541aeacc2d937e18", "596cb706541aeacc2d937e19"]},
+{name: "superadmins", participants: ["596cb706541aeacc2d937e1a"]}]
