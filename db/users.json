@@ -1,0 +1,9 @@
+[{ "_id" : ObjectId("596cb706541aeacc2d937e12"), "username" : "user0", "password" : "u0000000", "email" : "user0@gmail.com", "role" : "user" }
+{ "_id" : ObjectId("596cb706541aeacc2d937e13"), "username" : "user1", "password" : "u0000001", "email" : "user1@gmail.com", "role" : "user" }
+{ "_id" : ObjectId("596cb706541aeacc2d937e14"), "username" : "user2", "password" : "u0000002", "email" : "user2@gmail.com", "role" : "user" }
+{ "_id" : ObjectId("596cb706541aeacc2d937e15"), "username" : "user3", "password" : "u0000003", "email" : "user3@gmail.com", "role" : "user" }
+{ "_id" : ObjectId("596cb706541aeacc2d937e16"), "username" : "user4", "password" : "u0000004", "email" : "user4@gmail.com", "role" : "user" }
+{ "_id" : ObjectId("596cb706541aeacc2d937e17"), "username" : "admin0", "password" : "a0000000", "email" : "admin0@gmail.com", "role" : "admin" }
+{ "_id" : ObjectId("596cb706541aeacc2d937e18"), "username" : "admin1", "password" : "a0000001", "email" : "admin1@gmail.com", "role" : "admin" }
+{ "_id" : ObjectId("596cb706541aeacc2d937e19"), "username" : "admin2", "password" : "a0000002", "email" : "admin2@gmail.com", "role" : "admin" }
+{ "_id" : ObjectId("596cb706541aeacc2d937e1a"), "username" : "superadmin0", "password" : "s0000002", "email" : "superadmin0@gmail.com", "role" : "superadmin" }]
