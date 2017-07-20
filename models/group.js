@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+//function for validation if a group has at least one participant
 function validateGroup(arr){
     return arr.length !==0;
 }
