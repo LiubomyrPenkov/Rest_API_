@@ -1,5 +1,9 @@
 const mongoose = require('mongoose');
 
+//use it for check if email is unique
+const uniqueValidator = require('mongoose-unique-validator');
+
+
 //user Schema
 const userSchema = mongoose.Schema({
     username: {
@@ -14,7 +18,9 @@ const userSchema = mongoose.Schema({
     },
     email: {
         type: String,
-        required: [true, 'Email is required']
+        required: [true, 'Email is required'],
+        unique: true,
+        uniqueCaseInsensitive: true
     },
     role: {
         type: String,
@@ -22,5 +28,6 @@ const userSchema = mongoose.Schema({
     }
 });
 
+userSchema.plugin(uniqueValidator);
 const User = mongoose.model('user', userSchema, 'users');
 module.exports = User;
