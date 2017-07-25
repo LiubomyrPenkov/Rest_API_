@@ -13,6 +13,9 @@
     "express": "^4.15.3",
     "joi": "^10.6.0",
     "mongoose": "^4.11.3",
-    "mongoose-unique-validator": "^1.0.5"
+    "mongoose-unique-validator": "^1.0.5",
+    "passport": "^0.3.2",
+    "passport-http": "^0.3.0"
   }
 }
+
