@@ -8,14 +8,15 @@ const Group = require('../../models/group');
 
 router.route('/groups')
     //get all groups
-    .get((req, res, next) => {
-        Group.find({})
-            .exec()
-            .then((users) => res.status(200).json(users))
-            .catch((err) => { next(err) })
+    .get(async (req, res, next) => {
+        try {
+            res.status(200).json(await Group.find({}).exec());
+        } catch (err) {
+            next(err);
+        }
     })
     //create group
-    .post((req, res, next) => {
+    .post(async (req, res, next) => {
         //validation req.body
         const schema = Joi.object().keys({
             name: Joi.string().alphanum().min(4).max(20).required(),
@@ -25,124 +26,148 @@ router.route('/groups')
         if (result.error) {
             next(result.error);
         }
-        //check if a group with the same name already exists
-        Group.count({ "name": `${req.body.name.toLowerCase()}` })
-            .exec()
-            .then((groups) => {
-                //if exists - error
-                if (groups) {
-                    throw new Error("Group already exists");
-                }
-            })
+        try {
+            //check if a group with the same name already exists
+            const group = await Group.count({ "name": req.body.name.toLowerCase() }).exec()
+            //if exists -> error
+            if (group) {
+                throw new Error("Group already exists");
+            }
             // if not exist - filter array(check if there are users with the same IDs as in this array)
-            .then(() => {
-                let users = req.body.participants.filter((user) => {
-                    let a = User.find({ "_id": user });
-                    return !a._castError; //if user exists a._castError===null, if not - !!a._castError === true 
-                })
-                return users;
+            let users = req.body.participants.filter((user) => {
+                let a = User.find({ "_id": user }).exec();
+                return !a._castError; //if user exists a._castError===null, if not - !!a._castError === true 
             })
-            .then((users) => {
-                //check the filtered array's length
-                if (!users.length) {
-                    throw new Error("Type existing users");
-                } else {
-                    return users;
-                }
-            })
+            //check the filtered array's length
+            if (!users.length) {
+                throw new Error("Type existing users");
+            }
             //create group
-            .then((users) => Group.create({ "name": req.body.name, "participants": users }))
-            .then((group) => res.status(201).json(group))
-            .catch((err) => { next(err) });
+            res.status(201).json(await Group.create({ "name": req.body.name, "participants": users }));
+        } catch (err) {
+            next(err)
+        };
     });
 router.route('/groups/:_id')
     //get group by id
-    .get((req, res, next) => {
-        Group.find({ "_id": req.params._id })
-            .exec()
-            .then((group) => { res.status(200).json(group) })
-            .catch((err) => { next(err) })
+    .get(async (req, res, next) => {
+        try {
+            res.status(200).json(await Group.find({ "_id": req.params._id }).exec());
+        } catch (err) {
+            next(err)
+        };
     })
     //delete group
-    .delete((req, res, next) => {
-        Group.remove({ "_id": req.params._id })
-            .exec()
-            .then(() => { res.status(200).json({ "message": "the group is deleted" }) })
-            .catch((err) => { next(err) })
+    .delete(async (req, res, next) => {
+        try {
+            if (req.user[0].role === 'user') { throw new Error("Only superadmin or admin can delete a group") }
+            await Group.remove({ "_id": req.params._id }).exec();
+            res.status(200).json({ "message": "the group is deleted" });
+        } catch (err) {
+            next(err)
+        };
     })
     //update group
-    .patch((req, res, next) => {
+    .patch(async (req, res, next) => {
         //req.body validation(operation is required)
         const schema = Joi.object().keys({
             name: Joi.string().alphanum().min(4).max(20),
-            participant: Joi.string().alphanum().min(10),
-            operation: Joi.string().valid("add", "remove").required()
+            participants: Joi.array().min(1).unique()
         })
         const result = Joi.validate(req.body, schema);
         if (result.error) {
             next(result.error);
         }
-        //if participant was sent
-        if (req.body.participant) {
-            //check which operation must be done
-            if (req.body.operation === "add") {
-                //if operation === "add" -> check if user already is a member of this group
-                Group.count({ "_id": req.params._id, "participants": req.body.participant })
-                    .exec()
-                    .then((count) => {
-                        // if yes -> throw error
-                        if (count) {
-                            throw new Error("User already is a member of this group");
-                        }
-                    })
-                    //if not -> check if user with this id(req.body.participant) exists
-                    .then(()=> User.count({"_id" : req.body.participant}))
-                    .then((count)=>{
-                        if(!count){
-                            throw new Error("You can't insert non-existent user into participants")
-                        }
-                    })
-                    //add new member
-                    .then(() => Group.update({ "_id": req.params._id }, { $push: { "participants": req.body.participant } }))
-                    //change group's name if it was sent
-                    .then(() => {
-                        if (req.body.name) {
-                            Group.update({ "_id": req.params._id }, { "name": req.body.name }).exec();
-                        }
-                    })
-                    .then(() => res.status(200).json({ "message": "group is updated" }))
-                    .catch((err) => next(err));
-            } else { //if operation === "remove"
-                //check if user with sent id is a member of this group
-                Group.count({ "_id": req.params._id, "participants": req.body.participant })
-                    .exec()
-                    .then((count) => {
-                        //if not -> throw error
-                        if (!count) {
-                            throw new Error("This user isn't a member of this group,so you can't delete this user from the members");
-                        }
-                    })
-                    //if yes -> remove user from the participants
-                    .then(() => Group.update({ "_id": req.params._id }, { $pull: { "participants": req.body.participant } }))
-                    .then(() => {
-                        if (req.body.name) {
-                            //change group's name if it was sent
-                            Group.update({ "_id": req.params._id }, { "name": req.body.name }).exec();
-                        }
-                    })
-                    .then(() => res.status(200).json({ "message": "group is updated" }))
-                    .catch((err) => next(err));
+        try {
+            //if participants were sent
+            if (req.body.participants) {
+                //filter array(check if there are users with the same IDs as in this array)
+                let users = req.body.participants.filter(async (user) => {
+                    let a = await User.find({ "_id": user }).exec();
+                    return !a._castError; //if user exists a._castError===null, if not - !!a._castError === true 
+                })
+                //check the filtered array's length
+                if (!users.length) {
+                    throw new Error("Type existing users");
+                }
+                await Group.update({ '_id': req.params._id }, { 'participants': users }).exec();
             }
-        //if group's name was sent(but participant wasn't)
-        }else if(req.body.name){
-            //change only group's name
-            Group.update({ "_id": req.params._id }, { "name": req.body.name })
-            .exec()
-            .then(() => res.status(200).json({ "message": "group is updated" }))
-            .catch((err) => next(err));
-        //if neither group's name nor participant wasn't sent -> throw error
-        }else{
-            next(new Error("Either 'name' or 'participant' is required"));
-        }
+            //change group's name if it was sent
+            if (req.body.name) {
+                await Group.update({ "_id": req.params._id }, { "name": req.body.name }).exec();
+            }
+            res.status(200).json({ "message": "group is updated" });
+        } catch (err) {
+            next(err)
+        };
     });
+router.route('/groups/:_id/participants')
+    //get list of group's(width this _id) members 
+    .get(async (req, res, next) => {
+        try {
+            res.status(200).json(await Group.find({ "_id": req.params._id }, { "participants": 1, "_id": 0 }).exec());
+        } catch (err) {
+            next(err)
+        };
+    })
+    .post(async (req, res, next) => {
+        //validation req.body
+        const schema = Joi.object().keys({
+            participant: Joi.string().alphanum().min(10).required()
+        })
+        const result = Joi.validate(req.body, schema);
+        if (result.error) {
+            next(result.error);
+        }
+        try {
+            //check if autorized user want to add oneself into the group(if yes -> allow addition)->if not - 
+            //check if autorized user is superadmin -> if not - throw Error
+            if (req.user[0].id !== req.body.participants && req.user[0].role !== 'superadmin') {
+                throw new Error("Only superadmin can add another users into groups")
+            }
+            //check if user already is a member of this group
+            let count = await Group.count({ "_id": req.params._id, "participants": req.body.participant });
+            // if yes -> throw error
+            if (count) {
+                throw new Error("User already is a member of this group");
+            }
+            //check if user with this id(req.body.participant) exists
+            count = await User.count({ '_id': req.body.participant })
+            if (!count) {
+                throw new Error("You can't insert non-existent user into participants")
+            }
+            await Group.update({ "_id": req.params._id }, { $push: { "participants": req.body.participant } })
+            res.status(200).json({ "message": "user is added" })
+        } catch (err) {
+            next(err);
+        }
+    })
+    .delete(async (req, res, next) => {
+        //validation req.body
+        const schema = Joi.object().keys({
+            participant: Joi.string().alphanum().min(10).required()
+        })
+        const result = Joi.validate(req.body, schema);
+        if (result.error) {
+            next(result.error);
+        }
+        try {
+            //check if autorized user want to delete oneself from the group(if yes -> allow addition)->if not - 
+            //check if autorized user is superadmin -> if not - throw Error
+            if (req.user[0].id !== req.body.participants && req.user[0].role !== 'superadmin') {
+                throw new Error("Only superadmin can add another users into groups")
+            }
+            //check if user already is a member of this group
+            let count = await Group.count({ "_id": req.params._id, "participants": req.body.participant });
+            // if not -> throw error
+            if (!count) {
+                throw new Error("This user isn't a member of this group,so you can't delete this user from the members");
+            }
+            await Group.update({ "_id": req.params._id }, { $pull: { "participants": req.body.participant } })
+            res.status(200).json({ "message": "user is deleted" })
+        } catch (err) {
+            next(err);
+        }
+    })
+
 module.exports = router;
