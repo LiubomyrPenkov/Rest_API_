@@ -137,7 +137,7 @@ router.route('/groups/:_id/participants')
                 throw new Error("You can't insert non-existent user into participants")
             }
             await Group.update({ "_id": req.params._id }, { $push: { "participants": req.body.participant } })
-            res.status(200).json({ "message": "user is added" })
+            res.status(200).json({ "message": "user is added into this group" })
         } catch (err) {
             next(err);
         }
@@ -164,7 +164,7 @@ router.route('/groups/:_id/participants')
                 throw new Error("This user isn't a member of this group,so you can't delete this user from the members");
             }
             await Group.update({ "_id": req.params._id }, { $pull: { "participants": req.body.participant } })
-            res.status(200).json({ "message": "user is deleted" })
+            res.status(200).json({ "message": "user is deleted from the group" })
         } catch (err) {
             next(err);
         }
